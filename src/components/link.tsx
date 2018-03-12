@@ -13,6 +13,14 @@ function isModifiedEvent(event: React.MouseEvent<HTMLElement>) {
 export interface LinkProps {
     routerStore: RouterStore;
     toState: RouterState;
+    children:
+        | React.ReactNode
+        | ((arg: { getAnchorProps: (() => AnchorProps) }) => React.ReactNode);
+}
+
+export interface AnchorProps {
+    href: string;
+    onClick: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
 /**
@@ -22,14 +30,11 @@ export interface LinkProps {
 export class Link extends React.Component<LinkProps, {}> {
     render() {
         const { routerStore, toState, children } = this.props;
-        return (
-            <a
-                href={routerStateToUrl(routerStore, toState)}
-                onClick={this.handleClick}
-            >
-                {children}
-            </a>
-        );
+        // Support optional render function as children
+        if (typeof children === 'function') {
+            return children({ getAnchorProps: this.getAnchorProps });
+        }
+        return <a {...this.getAnchorProps()}>{children}</a>;
     }
 
     handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -42,5 +47,13 @@ export class Link extends React.Component<LinkProps, {}> {
         // Change the router state to trigger a refresh
         const { routerStore, toState } = this.props;
         routerStore.goTo(toState);
+    };
+
+    getAnchorProps = () => {
+        const { routerStore, toState } = this.props;
+        return {
+            href: routerStateToUrl(routerStore, toState),
+            onClick: this.handleClick
+        };
     };
 }
